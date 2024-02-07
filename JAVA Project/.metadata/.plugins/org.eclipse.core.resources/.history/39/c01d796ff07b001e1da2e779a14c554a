@@ -1,0 +1,575 @@
+
+import java.awt.BorderLayout;
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+import java.awt.Color;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
+import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+import javax.swing.SwingConstants;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+
+import java.awt.Component;
+import javax.swing.JTextField;
+import javax.swing.ImageIcon;
+import javax.swing.JComboBox;
+import com.toedter.calendar.JDateChooser;
+
+public class pageadmin_booking extends JFrame {
+
+	private static final long serialVersionUID = 1L;
+	private JPanel contentPane;
+	private JTextField textCost;
+	private JTextField textSearch;
+	private JTable table;
+	private DefaultTableModel model;
+	private JComboBox selectCustomer;
+	private JComboBox selectRoom;
+	private JDateChooser dateChooser;
+	private JDateChooser dateChooser_Out;
+	private DBconnect db;
+	private final long convertDate = 1000 * 60 * 60 * 24;
+
+	/**
+	 * Launch the application.
+	 */
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					pageadmin_booking frame = new pageadmin_booking();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	/**
+	 * Create the frame.
+	 */
+	public pageadmin_booking() {
+		menu();
+
+		page();
+		
+	}
+	public void page() {
+		JPanel panel_1 = new JPanel();
+		panel_1.setLayout(null);
+		panel_1.setBounds(229, 11, 545, 439);
+		contentPane.add(panel_1);
+
+		JPanel panel_report = new JPanel();
+		panel_report.setLayout(null);
+		panel_report.setBackground(Color.LIGHT_GRAY);
+		panel_report.setBounds(10, 11, 525, 373);
+		panel_1.add(panel_report);
+
+		JScrollPane scrollPane = new JScrollPane((Component) null);
+		scrollPane.setBounds(10, 202, 505, 160);
+		panel_report.add(scrollPane);
+
+		table = new JTable();
+
+		scrollPane.setViewportView(table);
+
+		textCost = new JTextField();
+		textCost.setColumns(10);
+		textCost.setBounds(131, 150, 72, 20);
+		panel_report.add(textCost);
+
+		JLabel lblNewLabel_2_1_2 = new JLabel("Customer");
+		lblNewLabel_2_1_2.setBounds(46, 65, 127, 14);
+		panel_report.add(lblNewLabel_2_1_2);
+
+		JLabel lblNewLabel_2_1_3 = new JLabel("Booking Date");
+		lblNewLabel_2_1_3.setBounds(46, 96, 89, 14);
+		panel_report.add(lblNewLabel_2_1_3);
+
+		JLabel lblNewLabel_2_1_4 = new JLabel("Cost");
+		lblNewLabel_2_1_4.setBounds(46, 153, 57, 14);
+		panel_report.add(lblNewLabel_2_1_4);
+
+		textSearch = new JTextField();
+		textSearch.setColumns(10);
+		textSearch.setBounds(316, 106, 185, 20);
+		panel_report.add(textSearch);
+
+		JPanel panel_Search = new JPanel();
+		panel_Search.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				String seach = textSearch.getText();
+				String sql = String.format(
+						"SELECT * FROM booking NATURAL JOIN rooms INNER JOIN customers ON phoneCustomers = phone WHERE ( ");
+				List<String> strSearch = new ArrayList(Arrays.asList("roomNumber", "id_booking", "phoneCustomers",
+						"type", "gender", "phone", "address", "name"));
+				for (String str : strSearch) {
+					sql += str + " LIKE '" + seach + "%" + "' " + "OR ";
+				}
+				
+				String newsql = sql.substring(0, sql.length() - 3);
+				newsql+=" ) ";
+				
+			//	System.out.println(newsql);
+
+				if(dateChooser.getDate()!=null && dateChooser_Out.getDate()!=null ) {
+					if (dateChooser_Out.getDate().getTime() < dateChooser.getDate().getTime()) {
+						JOptionPane.showMessageDialog(null, "DATE SEARCH INVALID");
+						 
+					}else {
+						String dStart = dateChooser.getDate().toString();
+						String dEnd = dateChooser_Out.getDate().toString();
+						sql +=String.format(" AND ((bookingDate BETWEEN '$s' AND '%s') OR (checkOutDate BETWEEN '$s' AND '%s'))",dStart,dEnd,dStart,dEnd);
+					
+					}
+				}
+				setTable(newsql);
+
+			}
+		});
+		panel_Search.setBackground(Color.CYAN);
+		panel_Search.setBounds(316, 137, 89, 33);
+		panel_report.add(panel_Search);
+
+		JLabel lblNewLabel_2_1_5 = new JLabel("Search");
+		panel_Search.add(lblNewLabel_2_1_5);
+
+		JPanel panel_Refresh = new JPanel();
+		panel_Refresh.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				refresh();
+			}
+		});
+		panel_Refresh.setBackground(Color.CYAN);
+		panel_Refresh.setBounds(415, 137, 89, 33);
+		panel_report.add(panel_Refresh);
+
+		JLabel lblNewLabel_2_1_6 = new JLabel("Refresh");
+		panel_Refresh.add(lblNewLabel_2_1_6);
+
+		selectCustomer = new JComboBox();
+		selectCustomer.setBounds(131, 57, 119, 22);
+		panel_report.add(selectCustomer);
+		addComboBox(selectCustomer, "SELECT phone FROM customers", "phone");
+
+		dateChooser = new JDateChooser();
+		dateChooser.setBounds(131, 90, 119, 20);
+		panel_report.add(dateChooser);
+
+		dateChooser_Out = new JDateChooser();
+		dateChooser_Out.setBounds(131, 121, 119, 20);
+		panel_report.add(dateChooser_Out);
+
+		JLabel lblNewLabel_2_1_1_1 = new JLabel("Room");
+		lblNewLabel_2_1_1_1.setBounds(46, 32, 127, 14);
+		panel_report.add(lblNewLabel_2_1_1_1);
+
+		selectRoom = new JComboBox();
+		selectRoom.setBounds(131, 25, 119, 22);
+		panel_report.add(selectRoom);
+		addComboBox(selectRoom, "SELECT * FROM rooms WHERE status = 'FREE'", "roomNumber");
+
+		JLabel lblNewLabel_2_1_4_1 = new JLabel("Duration Date");
+		lblNewLabel_2_1_4_1.setBounds(46, 125, 127, 14);
+		panel_report.add(lblNewLabel_2_1_4_1);
+
+		JPanel panel_Call = new JPanel();
+		panel_Call.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				// SimpleDateFormat dateFormat = new SimpleDateFormat("yyy-MM-dd");
+//				String dateBooking = dateFormat.format(   dateChooser.getDate());
+//				String dateOut = dateFormat.format(   dateChooser_Out.getDate());
+				long diffDay = dateChooser_Out.getDate().getTime() / convertDate
+						- dateChooser.getDate().getTime() / convertDate + 1;
+				textCost.setText(diffDay + "");
+				// System.out.println(diffDay);
+				// String cost = (int)(rs.getDouble("price") )+" ";
+
+			}
+		});
+		panel_Call.setBackground(Color.RED);
+		panel_Call.setBounds(216, 150, 34, 20);
+		panel_report.add(panel_Call);
+
+		JLabel lblNewLabel_2_1_5_1 = new JLabel("Call");
+		panel_Call.add(lblNewLabel_2_1_5_1);
+
+		JPanel panel_Delete = new JPanel();
+		panel_Delete.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+
+				int indexRow = table.getSelectedRow();
+				String id = model.getValueAt(indexRow, 0).toString();
+				String sql = String.format("DELETE FROM booking WHERE id_booking = '%s'", id);
+
+				db = new DBconnect();
+				db.getUpdate(sql);
+				refresh();
+
+			}
+		});
+		panel_Delete.setBackground(Color.LIGHT_GRAY);
+		panel_Delete.setBounds(108, 395, 89, 33);
+		panel_1.add(panel_Delete);
+
+		JLabel lblNewLabel_2_1 = new JLabel("Cancle");
+		panel_Delete.add(lblNewLabel_2_1);
+
+		JPanel panel_Add = new JPanel();
+		panel_Add.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+
+				String room = selectRoom.getSelectedItem().toString();
+				String customer = selectCustomer.getSelectedItem().toString();
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyy-MM-dd");
+				String bookingDate = dateFormat.format(dateChooser.getDate());
+				String bookingOut = dateFormat.format(dateChooser_Out.getDate());
+				String sql = String.format(
+						"INSERT INTO booking( roomNumber, phoneCustomers, bookingDate, checkoutDate)  VALUES('%s','%s','%s','%s' )",
+						room, customer, bookingDate, bookingOut);
+				boolean check = true;
+				
+				if (dateChooser_Out.getDate().getTime() < dateChooser.getDate().getTime()) {
+					JOptionPane.showMessageDialog(null, "BOOK DATE INVALID");
+					check = false;
+				}
+				if (textCost.getText().equals("")) {
+					JOptionPane.showMessageDialog(null, "PLEASE ENTER Call BUTTON");
+					check = false;
+				}
+				if(checkReapeatDate(bookingDate,bookingOut,room)) {
+					JOptionPane.showMessageDialog(null, "CAN'T BOOK - - > HAVED BOOKING");
+					check = false;
+				}
+				if (check) {
+					db = new DBconnect();
+					db.getUpdate(sql);
+
+				}
+				refresh();
+				// System.out.println(sql);
+
+			}
+		});
+		panel_Add.setBackground(Color.LIGHT_GRAY);
+		panel_Add.setBounds(369, 395, 89, 33);
+		panel_1.add(panel_Add);
+
+		JLabel lblNewLabel_2_3 = new JLabel("Book");
+		panel_Add.add(lblNewLabel_2_3);
+		refresh();
+	}
+
+	public void refresh() {
+		textCost.setText("");
+		textSearch.setText("");
+		selectCustomer.setSelectedItem(null);
+		selectRoom.setSelectedItem(null);
+		dateChooser.setDate(null);
+		dateChooser_Out.setDate(null);
+		String sql = "SELECT * FROM booking NATURAL JOIN rooms INNER JOIN customers ON phoneCustomers = phone ORDER BY id_booking ASC";
+		setTable(sql);
+
+	}
+
+	public void setTable(String sql) {
+		String[] colname = { "Id", "Room", "C_Phone", "C_Name", "B_Date", "B_Out", "Total", "Cost" };
+		model = new DefaultTableModel(colname, 0);
+		try {
+			db = new DBconnect();
+			ResultSet rs = db.getConnect(sql);
+			int index = 0;
+			while (rs.next()) {
+				index++;
+				String id_booking = Integer.toString(rs.getInt("id_booking"));
+				String roomNumber = rs.getString("roomNumber");
+				String phoneCustomers = rs.getString("phoneCustomers");
+				String bookingDate = rs.getDate("bookingDate").toString();
+				String checkoutDate = rs.getDate("checkoutDate").toString();
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyy-MM-dd");
+				long diffDay = rs.getDate("checkoutDate").getTime() / convertDate
+						- rs.getDate("bookingDate").getTime() / convertDate + 1;
+				System.out.println(diffDay);
+				String cost = (int) (rs.getDouble("price")) * diffDay + " ";
+				String nameCustomers = rs.getString("name");
+
+				String[] row = { id_booking, roomNumber, phoneCustomers, nameCustomers, bookingDate, checkoutDate,
+						diffDay + " days", cost };
+				// System.out.println(row[5]);
+				model.addRow(row);
+			}
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		table.setModel(model);
+		table.getColumnModel().getColumn(0).setMaxWidth(20);
+		table.getColumnModel().getColumn(1).setMaxWidth(40);
+
+	}
+
+	public void addComboBox(JComboBox comboBox, String sql, String artribute) {
+		try {
+			db = new DBconnect();
+			ResultSet rs = db.getConnect(sql);
+			while (rs.next()) {
+
+				comboBox.addItem(rs.getString(artribute));
+
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+	}
+
+	public boolean checkReapeatDate(String dateBook, String dateDuration,String roomNumber) {
+		String sql = String.format(
+				"SELECT * FROM booking WHERE ((bookingDate BETWEEN '%s' AND '%s')  OR (checkoutDate  BETWEEN '%s' AND '%s')) AND roomNumber = '%s'",
+				dateBook, dateDuration, dateBook, dateDuration,roomNumber);
+		System.out.println(sql);
+
+		try {
+			db = new DBconnect();
+			ResultSet rs = db.getConnect(sql);
+			if (rs.next()) {
+				return true;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return false;
+	}
+	
+	
+	
+	
+	public void menu() {
+		System.out.println("constructor page home");
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 800, 500);
+		contentPane = new JPanel();
+		contentPane.setBackground(new Color(0, 102, 102));
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+		setContentPane(contentPane);
+		contentPane.setLayout(null);
+		
+		JPanel panel = new JPanel();
+		panel.setBackground(new Color(47, 79, 79));
+		panel.setBounds(0, 0, 219, 461);
+		contentPane.add(panel);
+		panel.setLayout(null);
+		
+		JLabel lblRoomhub = new JLabel("Roomhub");
+		lblRoomhub.setHorizontalAlignment(SwingConstants.CENTER);
+		lblRoomhub.setForeground(new Color(255, 255, 255));
+		lblRoomhub.setFont(new Font("Arial Black", Font.BOLD, 20));
+		lblRoomhub.setBounds(48, 101, 133, 42);
+		panel.add(lblRoomhub);
+		
+		JLabel lbllogopage2 = new JLabel("");
+		lbllogopage2.setIcon(new ImageIcon(page1.class.getResource("/res/hotel (4).png")));
+		lbllogopage2.setHorizontalAlignment(SwingConstants.CENTER);
+		lbllogopage2.setBounds(74, 0, 81, 114);
+		panel.add(lbllogopage2);
+		
+		JPanel panel_booking = new JPanel();
+		panel_booking.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+			bookingClicked();
+			}
+		});
+		panel_booking.setBackground(new Color(47, 79, 79));
+		panel_booking.setBounds(0, 247, 219, 42);
+		panel.add(panel_booking);
+		panel_booking.setLayout(null);
+		
+		JLabel lblSearch = new JLabel("BOOKING");
+		lblSearch.setForeground(Color.WHITE);
+		lblSearch.setHorizontalAlignment(SwingConstants.CENTER);
+		lblSearch.setFont(new Font("Arial Black", Font.BOLD, 11));
+		lblSearch.setBounds(82, 11, 70, 20);
+		panel_booking.add(lblSearch);
+		
+		JPanel panel_room = new JPanel();
+		panel_room.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				roomClicked() ;
+				 
+			}
+
+			
+		});
+		 
+		panel_room.setBackground(new Color(47, 79, 79));
+		panel_room.setBounds(0, 194, 219, 42);
+		panel.add(panel_room);
+		panel_room.setLayout(null);
+		
+		JLabel lblroomdetail = new JLabel("");
+		lblroomdetail.setIcon(new ImageIcon(page1.class.getResource("/res/info.png")));
+		lblroomdetail.setHorizontalAlignment(SwingConstants.CENTER);
+		lblroomdetail.setBounds(47, 0, 46, 42);
+		panel_room.add(lblroomdetail);
+		
+		JLabel lblRoom = new JLabel("ROOM");
+		 
+		lblRoom.setForeground(new Color(255, 255, 255));
+		lblRoom.setHorizontalAlignment(SwingConstants.CENTER);
+		lblRoom.setFont(new Font("Arial Black", Font.BOLD, 11));
+		lblRoom.setBounds(79, 11, 70, 20);
+		panel_room.add(lblRoom);
+		
+		JPanel panel_profit = new JPanel();
+		panel_profit.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+			profitClicked();
+			}
+		});
+		panel_profit.setBackground(new Color(47, 79, 79));
+		panel_profit.setBounds(0, 355, 219, 42);
+		panel.add(panel_profit);
+		panel_profit.setLayout(null);
+		
+		JLabel lblprofit = new JLabel("");
+		lblprofit.setIcon(new ImageIcon(page1.class.getResource("/res/gross-profit.png")));
+		lblprofit.setHorizontalAlignment(SwingConstants.CENTER);
+		lblprofit.setBounds(47, 0, 46, 42);
+		panel_profit.add(lblprofit);
+		
+		JLabel lblProfit = new JLabel("PROFIT");
+		lblProfit.setForeground(Color.WHITE);
+		lblProfit.setHorizontalAlignment(SwingConstants.CENTER);
+		lblProfit.setFont(new Font("Arial Black", Font.BOLD, 11));
+		lblProfit.setBounds(83, 11, 70, 20);
+		panel_profit.add(lblProfit);
+		
+		JPanel panel_home = new JPanel();
+		panel_home.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				homeClicked();
+			}
+		});
+		panel_home.setBackground(new Color(47, 79, 79));
+		panel_home.setBounds(0, 141, 219, 42);
+		panel.add(panel_home);
+		panel_home.setLayout(null);
+		
+		JLabel lblhome = new JLabel("");
+		lblhome.setIcon(new ImageIcon(page1.class.getResource("/res/home.png")));
+		lblhome.setHorizontalAlignment(SwingConstants.CENTER);
+		lblhome.setBounds(47, 0, 46, 42);
+		panel_home.add(lblhome);
+		
+		JLabel lblNewLabel = new JLabel("HOME");
+		lblNewLabel.setForeground(new Color(255, 255, 255));
+		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		lblNewLabel.setFont(new Font("Arial Black", Font.BOLD, 11));
+		lblNewLabel.setBounds(79, 11, 70, 20);
+		panel_home.add(lblNewLabel);
+		
+		JPanel panel_singout = new JPanel();
+		panel_singout.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				singoutClicked();
+			}
+		});
+		panel_singout.setBackground(new Color(47, 79, 79));
+		panel_singout.setBounds(0, 408, 219, 42);
+		panel.add(panel_singout);
+		panel_singout.setLayout(null);
+		
+		JLabel lblsingout = new JLabel("");
+		lblsingout.setIcon(new ImageIcon(page1.class.getResource("/res/logout.png")));
+		lblsingout.setHorizontalAlignment(SwingConstants.CENTER);
+		lblsingout.setBounds(47, 0, 46, 42);
+		panel_singout.add(lblsingout);
+		
+		JLabel lblSingout = new JLabel("SINGOUT");
+		lblSingout.setForeground(Color.WHITE);
+		lblSingout.setHorizontalAlignment(SwingConstants.CENTER);
+		lblSingout.setFont(new Font("Arial Black", Font.BOLD, 11));
+		lblSingout.setBounds(89, 11, 70, 20);
+		panel_singout.add(lblSingout);
+		
+		JPanel panel_customer = new JPanel();
+		panel_customer.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				customerClicked();
+			}
+		});
+		panel_customer.setLayout(null);
+		panel_customer.setBackground(new Color(47, 79, 79));
+		panel_customer.setBounds(0, 302, 219, 42);
+		panel.add(panel_customer);
+		
+		JLabel lblprofit_1 = new JLabel("");
+		lblprofit_1.setHorizontalAlignment(SwingConstants.CENTER);
+		lblprofit_1.setBounds(47, 0, 46, 42);
+		panel_customer.add(lblprofit_1);
+		
+		JLabel lblCustomer = new JLabel("CUSTOMER");
+		lblCustomer.setHorizontalAlignment(SwingConstants.CENTER);
+		lblCustomer.setForeground(Color.WHITE);
+		lblCustomer.setFont(new Font("Arial Black", Font.BOLD, 11));
+		lblCustomer.setBounds(75, 11, 85, 20);
+		panel_customer.add(lblCustomer);
+	}
+	
+	 
+	
+	public void homeClicked() {
+		new pageadmin_home().setVisible(true);
+		this.dispose();
+	}
+	public void roomClicked() {
+		new pageadmin_room().setVisible(true);
+		this.dispose();
+	}
+	public void bookingClicked() {
+		new pageadmin_booking().setVisible(true);
+		this.dispose();
+	}
+	public void customerClicked() {
+		new pageadmin_customer().setVisible(true);
+		this.dispose();
+	}
+	public void profitClicked() {
+		new pageadmin_profit().setVisible(true);
+		this.dispose();
+	}
+	public void singoutClicked() {
+		new pagelogin().setVisible(true);
+		this.dispose();
+	}
+}

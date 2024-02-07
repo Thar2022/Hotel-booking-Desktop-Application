@@ -1,0 +1,6 @@
+INDEX VERSION 1.131+C:\Users\supha\OneDrive\Desktop\File\ปี3\OOP2566\project\JAVA Project\.metadata\.plugins\org.eclipse.jdt.core
+855236175.index
+1865797976.index
+1393285467.index
+2014957666.index
+3462933214.index
